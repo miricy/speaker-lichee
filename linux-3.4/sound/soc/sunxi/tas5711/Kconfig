@@ -1,0 +1,3 @@
+config SND_SUNXI_SOC_TAS5711
+	tristate "TAS5711 driver for audio"
+	default n

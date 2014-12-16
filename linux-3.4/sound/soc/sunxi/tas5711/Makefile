@@ -1,0 +1,1 @@
+obj-$(CONFIG_SND_SUNXI_SOC_TAS5711) += tas5711.o
