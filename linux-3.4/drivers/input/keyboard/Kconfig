@@ -595,4 +595,6 @@ config IR_TX_SUNXI
        tristate "sunxi IR TX support"
          help
           Say Y here to enable the IR TX, support NEC code.
+config BOX_KEYBOARD
+       tristate "box KEY BOARD support"
 endif
