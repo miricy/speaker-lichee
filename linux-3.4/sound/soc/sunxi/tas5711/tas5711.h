@@ -10,11 +10,23 @@
 #include <linux/delay.h>
 #include <linux/slab.h>
 #include <linux/gpio.h>
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/pm.h>
+#include <linux/fs.h>
+#include <linux/io.h>
+#include <linux/miscdevice.h>
+#include <linux/device.h>
+#include <linux/kdev_t.h>
+#include <linux/cdev.h>
+#include <asm/uaccess.h>
 #include <asm/io.h>
 #include <mach/gpio.h>
 #include <mach/sys_config.h>
+
 //device name
 #define TAS5711_DEV "tas5711"
+#define DEVICE_NAME TAS5711_DEV
 //i2c device slave address
 #define TAS5711_SLAVE_ADDR  0x34    // 0x36(15k pull up) or 0x34(15k pull down)
 #define TAS57111_ADDR  (TAS5711_SLAVE_ADDR >> 1)
@@ -22,6 +34,7 @@ static const unsigned short tas5711_addr[] = { TAS57111_ADDR, I2C_CLIENT_END };
 
 //switch for debug
 static bool DEBUG = true;
+#define TAS5711_TEST  0
 
 //sub-address
 #define Clock_ctl      0x00
@@ -46,6 +59,12 @@ typedef union {
     };
 } cfg_reg;
 
+struct tas5711_cdev {
+	struct cdev cdev;
+	//unsigned char str[MAX_SIZE];
+	struct semaphore tas_sem;
+};
+
 //set channel volume
 typedef enum {
    CH_1  = 0,
@@ -53,6 +72,13 @@ typedef enum {
    CH_3  = 2,
 } ch_num;
 
+enum {
+    TAS5711_SET_MASTER_VOLUME = 0,
+    TAS5711_GET_MASTER_VOLUME = 1,
+    TAS5711_SET_POWER          = 2,
+    TAS5711_SET_MUTE           = 3,
+    TAT5711_CMD_MAX_NUM        = 252,
+};
 //cmd
 #define CFG_META_SWITCH (255)
 #define CFG_META_DELAY  (254)
@@ -1198,10 +1224,10 @@ cfg_reg registers[] = {
 };
 
 char vol_to_reg[16] = {
-    0,0,0,0,
-    0,0,0,0,
-    0,0,0,0,
-    0,0,0,0
+    0xfe,0xef,0xec,0xc0,
+    0xb0,0xa0,0x90,0x80,
+    0x70,0x60,0x55,0x50,
+    0x45,0x40,0x35,0x30
 };
 //log
 #define print_err(format,args...)  do{ printk(KERN_ERR format,##args);}while(0)
@@ -1209,6 +1235,8 @@ char vol_to_reg[16] = {
 #define print_debug(format,args...)  do{ printk(format,##args);}while(0)
 
 int tas5711_dev_init(void);
-void tas5711_master_vol(unsigned char vol_level);
+void tas5711_master_vol(int vol_level);
 void tas5711_channel_vol(ch_num ch, int vol_level);
 void tas5711_set_mute(void);
+int tas5711_volume_test(void);
+
